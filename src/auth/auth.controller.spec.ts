@@ -3,6 +3,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../user/user.dto';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { JwtStrategy } from '../auth/jwt.strategy';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -126,6 +127,36 @@ describe('AuthController', () => {
 
       expect(result).toHaveProperty('access_token');
       expect(typeof result.access_token).toBe('string');
+    });
+  });
+
+  describe('JWT Strategy', () => {
+    let jwtStrategy: JwtStrategy;
+    let module: TestingModule;
+
+    beforeEach(async () => {
+      module = await Test.createTestingModule({
+        providers: [JwtStrategy],
+      }).compile();
+      jwtStrategy = module.get<JwtStrategy>(JwtStrategy);
+    });
+
+    it('should validate JWT payload correctly', () => {
+      const payload = { sub: 1, email: 'test@example.com' };
+      const result = jwtStrategy.validate(payload);
+      expect(result).toEqual({
+        id: 1,
+        email: 'test@example.com',
+      });
+    });
+
+    it('should handle empty payload gracefully', () => {
+      const payload = { sub: 0, email: '' };
+      const result = jwtStrategy.validate(payload);
+      expect(result).toEqual({
+        id: 0,
+        email: '',
+      });
     });
   });
 });
