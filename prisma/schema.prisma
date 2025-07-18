@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -15,9 +12,116 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  password String
-  name     String?
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  password      String
+  name          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  projectUsers  ProjectUser[] @relation("UserProjects")
+  assignedTasks Task[]        @relation("AssignedTasks")
+}
+
+model Project {
+  id           Int           @id @default(autoincrement())
+  name         String
+  description  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  projectUsers ProjectUser[] @relation("UserProjects")
+  columns      Column[]      @relation("ProjectColumns")
+  tasks        Task[]        @relation("ProjectTasks")
+  tags         Tag[]         @relation("ProjectTags")
+}
+
+model ProjectUser {
+  id        Int      @id @default(autoincrement())
+  project   Project  @relation("UserProjects", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Int
+  user      User     @relation("UserProjects", fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  role      Role     @default(MEMBER)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, userId])
+}
+
+model Column {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String?
+  position  Int
+  project   Project  @relation("ProjectColumns", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Int
+  tasks     Task[]   @relation("ColumnTasks")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, position])
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  type        TaskType  @default(TASK)
+  status      TaskStatus @default(TODO)
+  priority    Priority  @default(MEDIUM)
+  startDate   DateTime?
+  endDate     DateTime?
+  dueDate     DateTime?
+  project     Project   @relation("ProjectTasks", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   Int
+  column      Column    @relation("ColumnTasks", fields: [columnId], references: [id], onDelete: Cascade)
+  columnId    Int
+  assignedTo  User?     @relation("AssignedTasks", fields: [userId], references: [id], onDelete: SetNull)
+  userId      Int?
+  tags        Tag[]     @relation("TaskTags")
+  position    Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([columnId, position])
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String
+  project   Project  @relation("ProjectTags", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Int
+  tasks     Task[]   @relation("TaskTags")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum TaskType {
+  TASK
+  BUG
+  FEATURE
+  IMPROVEMENT
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
 }
