@@ -1,3 +1,7 @@
+/*
+TODO: Add ability to revoke individual sessions
+TODO: Add refresh token
+*/
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
