@@ -60,7 +60,6 @@ export class ColumnService {
   }
 
   async findAll(userId: number, projectId: number) {
-    // All roles can view
     await this.checkUserAccess(userId, projectId, [
       Role.OWNER,
       Role.ADMIN,

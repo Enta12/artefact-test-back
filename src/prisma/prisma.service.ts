@@ -1,4 +1,3 @@
-// TODO: Remove this disable when Prisma client types are properly resolved
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma';
 
