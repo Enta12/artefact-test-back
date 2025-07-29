@@ -28,6 +28,6 @@ async function bootstrap() {
 
   const port = process.env.PORT || 5000;
   console.log(`Application démarrée sur le port ${port}`);
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();
