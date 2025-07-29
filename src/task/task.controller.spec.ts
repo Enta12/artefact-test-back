@@ -8,7 +8,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from '../auth/jwt.strategy';
-import { Role, TaskType, Priority, TaskStatus } from '../../generated/prisma';
+import { Role, TaskType, Priority } from '../../generated/prisma';
 
 describe('TaskModule Integration Tests', () => {
   let module: TestingModule;
@@ -37,7 +37,6 @@ describe('TaskModule Integration Tests', () => {
     title: 'Test Task',
     description: 'Test Description',
     type: TaskType.TASK,
-    status: TaskStatus.TODO,
     priority: Priority.MEDIUM,
     projectId: mockProject.id,
     columnId: mockColumn.id,
@@ -255,7 +254,6 @@ describe('TaskModule Integration Tests', () => {
     describe('Update', () => {
       const updateDto: UpdateTaskDto = {
         title: 'Updated Task',
-        status: TaskStatus.IN_PROGRESS,
       };
 
       beforeEach(() => {
@@ -281,7 +279,6 @@ describe('TaskModule Integration Tests', () => {
           updateDto,
         );
         expect(result.title).toBe(updateDto.title);
-        expect(result.status).toBe(updateDto.status);
       });
 
       it('should handle invalid task ID format', () => {

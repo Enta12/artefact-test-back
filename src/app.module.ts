@@ -7,9 +7,18 @@ import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { ColumnModule } from './column/column.module';
 import { TagModule } from './tag/tag.module';
+import { TaskModule } from './task/task.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, ProjectModule, ColumnModule, TagModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    UserModule,
+    ProjectModule,
+    ColumnModule,
+    TagModule,
+    TaskModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

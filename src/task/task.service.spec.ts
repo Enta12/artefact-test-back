@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskService } from './task.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, TaskType, Priority, TaskStatus } from '../../generated/prisma';
+import { Role, TaskType, Priority } from '../../generated/prisma';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CreateTaskDto, UpdateTaskDto } from './task.dto';
 
@@ -35,7 +35,6 @@ describe('TaskService', () => {
     title: 'Test Task',
     description: 'Test Description',
     type: TaskType.TASK,
-    status: TaskStatus.TODO,
     priority: Priority.MEDIUM,
     projectId: mockProject.id,
     columnId: mockColumn.id,
@@ -195,22 +194,6 @@ describe('TaskService', () => {
 
         const result = await service.update(mockUser.id, mockTask.id, updateDto);
         expect(result.title).toBe(updateDto.title);
-      });
-
-      it('should allow MEMBER to update task status', async () => {
-        jest.spyOn(prismaService.projectUser, 'findFirst').mockResolvedValue({
-          ...mockProjectUser,
-          role: Role.MEMBER,
-        });
-        jest.spyOn(prismaService.task, 'update').mockResolvedValue({
-          ...mockTask,
-          status: TaskStatus.IN_PROGRESS,
-        });
-
-        const result = await service.update(mockUser.id, mockTask.id, {
-          status: TaskStatus.IN_PROGRESS,
-        });
-        expect(result.status).toBe(TaskStatus.IN_PROGRESS);
       });
 
       it('should deny MEMBER from updating non-status fields of non-assigned task', async () => {

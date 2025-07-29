@@ -34,54 +34,87 @@ export class TaskService {
   }
 
   async create(userId: number, createTaskDto: CreateTaskDto) {
-    const projectUser = await this.checkProjectAccess(userId, createTaskDto.projectId);
+    let projectUser;
+    try {
+      projectUser = await this.checkProjectAccess(userId, createTaskDto.projectId);
+    } catch (e) {
+      console.error('Error checkProjectAccess:', e);
+      throw e;
+    }
 
     if (projectUser.role === Role.VIEWER) {
+      console.warn('Denied: VIEWER role');
       throw new ForbiddenException('Insufficient permissions');
     }
 
-    const column = await this.prisma.column.findFirst({
-      where: {
-        id: createTaskDto.columnId,
-        projectId: createTaskDto.projectId,
-      },
-    });
+    let column;
+    try {
+      column = await this.prisma.column.findFirst({
+        where: {
+          id: createTaskDto.columnId,
+          projectId: createTaskDto.projectId,
+        },
+      });
+    } catch (e) {
+      console.error('Error searching column:', e);
+      throw e;
+    }
 
     if (!column) {
+      console.warn('Column not found or does not belong to the project');
       throw new NotFoundException('Column not found or does not belong to the project');
     }
 
     if (createTaskDto.position) {
-      await this.prisma.task.updateMany({
-        where: {
-          columnId: createTaskDto.columnId,
-          position: {
-            gte: createTaskDto.position,
+      try {
+        await this.prisma.task.updateMany({
+          where: {
+            columnId: createTaskDto.columnId,
+            position: {
+              gte: createTaskDto.position,
+            },
           },
-        },
-        data: {
-          position: {
-            increment: 1,
+          data: {
+            position: {
+              increment: 1,
+            },
           },
-        },
-      });
+        });
+      } catch (e) {
+        console.error('Error updateMany positions:', e);
+        throw e;
+      }
     }
 
-    return this.prisma.task.create({
-      data: {
-        ...createTaskDto,
-        tags: createTaskDto.tagIds
-          ? {
-              connect: createTaskDto.tagIds.map((id) => ({ id })),
-            }
-          : undefined,
-      },
-      include: {
-        tags: true,
-        assignedTo: true,
-        column: true,
-      },
-    });
+    const { tagIds, ...taskData } = createTaskDto;
+
+    try {
+      const createdTask = await this.prisma.task.create({
+        data: {
+          ...taskData,
+          tags: tagIds
+            ? {
+                connect: tagIds.map((id) => ({ id })),
+              }
+            : undefined,
+        },
+        include: {
+          tags: true,
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          column: true,
+        },
+      });
+      return createdTask;
+    } catch (e) {
+      console.error('Error creating task:', e);
+      throw e;
+    }
   }
 
   async findAll(userId: number, projectId: number) {
@@ -91,7 +124,13 @@ export class TaskService {
       where: { projectId },
       include: {
         tags: true,
-        assignedTo: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         column: true,
       },
       orderBy: [{ columnId: 'asc' }, { position: 'asc' }],
@@ -105,7 +144,13 @@ export class TaskService {
       where: { id: taskId },
       include: {
         tags: true,
-        assignedTo: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         column: true,
       },
     });
@@ -116,9 +161,7 @@ export class TaskService {
 
     if (
       projectUser.role === Role.VIEWER ||
-      (projectUser.role === Role.MEMBER &&
-        task.userId !== userId &&
-        Object.keys(updateTaskDto).some((key) => key !== 'status'))
+      (projectUser.role === Role.MEMBER && task.userId !== userId)
     ) {
       throw new ForbiddenException('Insufficient permissions');
     }
@@ -138,34 +181,200 @@ export class TaskService {
       }
 
       if (updateTaskDto.position !== undefined) {
-        await this.prisma.task.updateMany({
-          where: {
-            columnId: targetColumnId,
-            position: {
-              gte: updateTaskDto.position,
+        return await this.prisma.$transaction(async (tx) => {
+          const currentTask = await tx.task.findUnique({
+            where: { id: taskId },
+            select: { position: true, columnId: true },
+          });
+
+          if (!currentTask) {
+            throw new Error('Task not found');
+          }
+
+          const targetPosition = updateTaskDto.position!;
+
+          if (targetColumnId !== currentTask.columnId) {
+            const tasksInOldColumn = await tx.task.findMany({
+              where: { columnId: currentTask.columnId },
+              select: { id: true, position: true, title: true },
+              orderBy: { position: 'asc' },
+            });
+
+            const tasksInNewColumn = await tx.task.findMany({
+              where: { columnId: targetColumnId },
+              select: { id: true, position: true, title: true },
+              orderBy: { position: 'asc' },
+            });
+
+            await tx.task.update({
+              where: { id: taskId },
+              data: { position: -1 },
+            });
+
+            const tasksToUpdateInOldColumn = tasksInOldColumn.filter(
+              (t) => t.position > currentTask.position,
+            );
+
+            for (const task of tasksToUpdateInOldColumn) {
+              await tx.task.update({
+                where: { id: task.id },
+                data: { position: task.position - 1 },
+              });
+            }
+
+            const tasksToUpdateInNewColumn = tasksInNewColumn.filter(
+              (t) => t.position >= targetPosition,
+            );
+
+            for (let i = tasksToUpdateInNewColumn.length - 1; i >= 0; i--) {
+              const task = tasksToUpdateInNewColumn[i];
+              await tx.task.update({
+                where: { id: task.id },
+                data: { position: task.position + 1 },
+              });
+            }
+
+            const { tagIds, ...taskUpdateData } = updateTaskDto;
+
+            const updatedTask = await tx.task.update({
+              where: { id: taskId },
+              data: {
+                ...taskUpdateData,
+                columnId: targetColumnId,
+                position: targetPosition,
+                tags: tagIds
+                  ? {
+                      set: tagIds.map((id) => ({ id })),
+                    }
+                  : undefined,
+              },
+              include: {
+                tags: true,
+                assignedTo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                column: true,
+              },
+            });
+            return updatedTask;
+          }
+
+          if (targetPosition !== currentTask.position) {
+            const allTasksInColumn = await tx.task.findMany({
+              where: { columnId: targetColumnId },
+              select: { id: true, position: true, title: true },
+              orderBy: { position: 'asc' },
+            });
+
+            for (let i = 0; i < allTasksInColumn.length; i++) {
+              await tx.task.update({
+                where: { id: allTasksInColumn[i].id },
+                data: { position: -(i + 1) },
+              });
+            }
+
+            const tasksExceptCurrent = allTasksInColumn.filter((t) => t.id !== taskId);
+            const newOrder = [...tasksExceptCurrent];
+
+            newOrder.splice(targetPosition, 0, allTasksInColumn.find((t) => t.id === taskId)!);
+
+            for (let i = 0; i < newOrder.length; i++) {
+              await tx.task.update({
+                where: { id: newOrder[i].id },
+                data: { position: i },
+              });
+            }
+
+            const { tagIds: tagIdsFromUpdate, ...taskUpdateData } = updateTaskDto;
+
+            const updatedTask = await tx.task.update({
+              where: { id: taskId },
+              data: {
+                ...taskUpdateData,
+                position: targetPosition,
+                tags: tagIdsFromUpdate
+                  ? {
+                      set: tagIdsFromUpdate.map((id) => ({ id })),
+                    }
+                  : undefined,
+              },
+              include: {
+                tags: true,
+                assignedTo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+                column: true,
+              },
+            });
+
+            await tx.task.findMany({
+              where: { columnId: targetColumnId },
+              select: { id: true, position: true, title: true },
+              orderBy: { position: 'asc' },
+            });
+
+            return updatedTask;
+          }
+
+          const { tagIds: tagIdsNoPosition, ...taskUpdateData } = updateTaskDto;
+
+          const updatedTask = await tx.task.update({
+            where: { id: taskId },
+            data: {
+              ...taskUpdateData,
+              tags: tagIdsNoPosition
+                ? {
+                    set: tagIdsNoPosition.map((id) => ({ id })),
+                  }
+                : undefined,
             },
-            id: { not: taskId },
-          },
-          data: {
-            position: { increment: 1 },
-          },
+            include: {
+              tags: true,
+              assignedTo: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+              column: true,
+            },
+          });
+
+          return updatedTask;
         });
       }
     }
 
+    const { tagIds, ...updateData } = updateTaskDto;
+
     return this.prisma.task.update({
       where: { id: taskId },
       data: {
-        ...updateTaskDto,
-        tags: updateTaskDto.tagIds
+        ...updateData,
+        tags: tagIds
           ? {
-              set: updateTaskDto.tagIds.map((id) => ({ id })),
+              set: tagIds.map((id) => ({ id })),
             }
           : undefined,
       },
       include: {
         tags: true,
-        assignedTo: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         column: true,
       },
     });
@@ -213,7 +422,13 @@ export class TaskService {
       where: { columnId },
       include: {
         tags: true,
-        assignedTo: true,
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         column: true,
       },
       orderBy: { position: 'asc' },

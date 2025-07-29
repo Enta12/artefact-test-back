@@ -177,7 +177,8 @@ describe('ColumnService', () => {
         });
 
         const result = await service.update(mockUser.id, mockColumn.id, updateDto);
-        expect(result.name).toBe(updateDto.name);
+        expect(result).not.toBeNull();
+        expect(result!.name).toBe(updateDto.name);
       });
 
       it('should allow ADMIN to update column', async () => {
@@ -191,7 +192,8 @@ describe('ColumnService', () => {
         });
 
         const result = await service.update(mockUser.id, mockColumn.id, updateDto);
-        expect(result.name).toBe(updateDto.name);
+        expect(result).not.toBeNull();
+        expect(result!.name).toBe(updateDto.name);
       });
 
       it('should deny MEMBER from updating column', async () => {
@@ -232,7 +234,17 @@ describe('ColumnService', () => {
           ...mockProjectUser,
           role: Role.OWNER,
         });
-        jest.spyOn(prismaService.column, 'delete').mockResolvedValue(mockColumn);
+        const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+          const mockTx = {
+            column: {
+              delete: jest.fn().mockResolvedValue(mockColumn),
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn().mockResolvedValue(mockColumn),
+            },
+          };
+          return await callback(mockTx);
+        });
+        jest.spyOn(prismaService, '$transaction').mockImplementation(mockTransaction);
 
         const result = await service.remove(mockUser.id, mockColumn.id);
         expect(result).toEqual({ message: 'Column deleted successfully' });
@@ -243,7 +255,17 @@ describe('ColumnService', () => {
           ...mockProjectUser,
           role: Role.ADMIN,
         });
-        jest.spyOn(prismaService.column, 'delete').mockResolvedValue(mockColumn);
+        const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+          const mockTx = {
+            column: {
+              delete: jest.fn().mockResolvedValue(mockColumn),
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn().mockResolvedValue(mockColumn),
+            },
+          };
+          return await callback(mockTx);
+        });
+        jest.spyOn(prismaService, '$transaction').mockImplementation(mockTransaction);
 
         const result = await service.remove(mockUser.id, mockColumn.id);
         expect(result).toEqual({ message: 'Column deleted successfully' });

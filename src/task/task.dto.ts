@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsInt, IsEnum, IsDate, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
-import { TaskType, Priority, TaskStatus } from '../../generated/prisma';
+import { TaskType, Priority } from '../../generated/prisma';
 
 export class CreateTaskDto {
   @IsString()
@@ -13,10 +13,6 @@ export class CreateTaskDto {
   @IsEnum(TaskType)
   @IsOptional()
   type?: TaskType;
-
-  @IsEnum(TaskStatus)
-  @IsOptional()
-  status?: TaskStatus;
 
   @IsEnum(Priority)
   @IsOptional()
@@ -68,10 +64,6 @@ export class UpdateTaskDto {
   @IsEnum(TaskType)
   @IsOptional()
   type?: TaskType;
-
-  @IsEnum(TaskStatus)
-  @IsOptional()
-  status?: TaskStatus;
 
   @IsEnum(Priority)
   @IsOptional()

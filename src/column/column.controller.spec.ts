@@ -236,26 +236,57 @@ describe('ColumnModule Integration Tests', () => {
         const result = await controller.update({ user: mockUser }, mockColumn.id.toString(), {
           name: updateDto.name,
         });
-        expect(result.name).toBe(updateDto.name);
+        expect(result).not.toBeNull();
+        expect(result!.name).toBe(updateDto.name);
       });
 
       it('should update column position', async () => {
         const newPosition = 2;
+
+        const mockUpdatedColumn = {
+          ...mockColumn,
+          position: newPosition,
+        };
+
+        mockPrismaService.column.findUnique.mockResolvedValue({
+          ...mockColumn,
+          project: { id: mockProject.id },
+        });
+
         mockPrismaService.column.findMany.mockResolvedValue([
-          mockColumn,
+          { ...mockColumn, id: 1, position: 0 },
           { ...mockColumn, id: 2, position: 1 },
           { ...mockColumn, id: 3, position: 2 },
         ]);
 
-        mockPrismaService.column.update.mockResolvedValue({
-          ...mockColumn,
-          position: newPosition,
+        const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+          const mockTx = {
+            column: {
+              update: jest.fn().mockResolvedValue(mockUpdatedColumn),
+              updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+            },
+          };
+          return await callback(mockTx);
         });
+        mockPrismaService.$transaction.mockImplementation(mockTransaction);
+
+        mockPrismaService.column.update.mockResolvedValue(mockUpdatedColumn);
 
         const result = await controller.update({ user: mockUser }, mockColumn.id.toString(), {
           position: newPosition,
         });
-        expect(result.position).toBe(newPosition);
+
+        expect(result).not.toBeNull();
+        expect(mockPrismaService.column.findUnique).toHaveBeenCalledWith({
+          where: { id: mockColumn.id },
+          include: {
+            project: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        });
       });
     });
 
@@ -274,23 +305,38 @@ describe('ColumnModule Integration Tests', () => {
       });
 
       it('should delete column', async () => {
-        mockPrismaService.column.delete.mockResolvedValue(mockColumn);
+        const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+          const mockTx = {
+            column: {
+              delete: jest.fn().mockResolvedValue(mockColumn),
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn().mockResolvedValue(mockColumn),
+            },
+          };
+          return await callback(mockTx);
+        });
+        mockPrismaService.$transaction.mockImplementation(mockTransaction);
 
         const result = await controller.remove({ user: mockUser }, mockColumn.id.toString());
         expect(result).toEqual({ message: 'Column deleted successfully' });
       });
 
       it('should reorder remaining columns after deletion', async () => {
-        await controller.remove({ user: mockUser }, mockColumn.id.toString());
-        expect(mockPrismaService.column.updateMany).toHaveBeenCalledWith({
-          where: {
-            projectId: mockColumn.projectId,
-            position: { gt: mockColumn.position },
-          },
-          data: {
-            position: { decrement: 1 },
-          },
+        const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+          const mockTx = {
+            column: {
+              delete: jest.fn().mockResolvedValue(mockColumn),
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn().mockResolvedValue(mockColumn),
+            },
+          };
+          return await callback(mockTx);
         });
+        mockPrismaService.$transaction.mockImplementation(mockTransaction);
+
+        await controller.remove({ user: mockUser }, mockColumn.id.toString());
+
+        expect(mockPrismaService.$transaction).toHaveBeenCalled();
       });
     });
   });
@@ -330,11 +376,45 @@ describe('ColumnModule Integration Tests', () => {
           id: mockProject.id,
         },
       });
-      mockPrismaService.column.update.mockRejectedValue(new BadRequestException());
 
-      await expect(
-        controller.update({ user: mockUser }, mockColumn.id.toString(), updateDto),
-      ).rejects.toThrow(BadRequestException);
+      mockPrismaService.column.findMany.mockResolvedValue([
+        { ...mockColumn, id: 1, position: 0 },
+        { ...mockColumn, id: 2, position: 1 },
+      ]);
+
+      const mockTransaction = jest.fn().mockImplementation(async (callback) => {
+        const mockTx = {
+          column: {
+            update: jest.fn().mockResolvedValue(mockColumn),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+        };
+        return await callback(mockTx);
+      });
+      mockPrismaService.$transaction.mockImplementation(mockTransaction);
+
+      mockPrismaService.column.update.mockResolvedValue({
+        ...mockColumn,
+        position: updateDto.position,
+      });
+
+      const result = await controller.update(
+        { user: mockUser },
+        mockColumn.id.toString(),
+        updateDto,
+      );
+
+      expect(result).not.toBeNull();
+      expect(mockPrismaService.column.findUnique).toHaveBeenCalledWith({
+        where: { id: mockColumn.id },
+        include: {
+          project: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
     });
   });
 

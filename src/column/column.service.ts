@@ -71,7 +71,18 @@ export class ColumnService {
       where: { projectId },
       orderBy: { position: 'asc' },
       include: {
-        tasks: true,
+        tasks: {
+          include: {
+            tags: true,
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -87,7 +98,18 @@ export class ColumnService {
         },
       },
       include: {
-        tasks: true,
+        tasks: {
+          include: {
+            tags: true,
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
         project: {
           select: {
             id: true,
@@ -132,9 +154,21 @@ export class ColumnService {
       await this.handlePositionUpdate(column.project.id, id, updateColumnDto.position);
     }
 
+    const { position: _, ...otherUpdates } = updateColumnDto;
+    const dataToUpdate = updateColumnDto.position !== undefined ? otherUpdates : updateColumnDto;
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return this.prisma.column.findUnique({
+        where: { id },
+        include: {
+          tasks: true,
+        },
+      });
+    }
+
     return this.prisma.column.update({
       where: { id },
-      data: updateColumnDto,
+      data: dataToUpdate,
       include: {
         tasks: true,
       },
@@ -161,15 +195,24 @@ export class ColumnService {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.column.delete({ where: { id } });
-      await tx.column.updateMany({
-        where: {
-          projectId: column.project.id,
-          position: { gt: column.position },
-        },
-        data: {
-          position: { decrement: 1 },
-        },
+      const remainingColumns = await tx.column.findMany({
+        where: { projectId: column.project.id },
+        orderBy: { position: 'asc' },
       });
+      for (let i = 0; i < remainingColumns.length; i++) {
+        if (remainingColumns[i].position !== i) {
+          await tx.column.update({
+            where: { id: remainingColumns[i].id },
+            data: { position: -1 - i },
+          });
+        }
+      }
+      for (let i = 0; i < remainingColumns.length; i++) {
+        await tx.column.update({
+          where: { id: remainingColumns[i].id },
+          data: { position: i },
+        });
+      }
     });
 
     return { message: 'Column deleted successfully' };
@@ -203,34 +246,46 @@ export class ColumnService {
     const oldPosition = currentColumn.position;
     if (oldPosition === newPosition) return;
 
-    if (oldPosition < newPosition) {
-      await this.prisma.column.updateMany({
-        where: {
-          projectId,
-          position: {
-            gt: oldPosition,
-            lte: newPosition,
-          },
-          id: { not: columnId },
-        },
-        data: {
-          position: { decrement: 1 },
-        },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.column.update({
+        where: { id: columnId },
+        data: { position: -1 },
       });
-    } else {
-      await this.prisma.column.updateMany({
-        where: {
-          projectId,
-          position: {
-            gte: newPosition,
-            lt: oldPosition,
+
+      if (oldPosition < newPosition) {
+        await tx.column.updateMany({
+          where: {
+            projectId,
+            position: {
+              gt: oldPosition,
+              lte: newPosition,
+            },
+            id: { not: columnId },
           },
-          id: { not: columnId },
-        },
-        data: {
-          position: { increment: 1 },
-        },
+          data: {
+            position: { decrement: 1 },
+          },
+        });
+      } else {
+        await tx.column.updateMany({
+          where: {
+            projectId,
+            position: {
+              gte: newPosition,
+              lt: oldPosition,
+            },
+            id: { not: columnId },
+          },
+          data: {
+            position: { increment: 1 },
+          },
+        });
+      }
+
+      await tx.column.update({
+        where: { id: columnId },
+        data: { position: newPosition },
       });
-    }
+    });
   }
 }
