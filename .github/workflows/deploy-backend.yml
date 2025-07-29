@@ -21,9 +21,10 @@ jobs:
       - name: Docker build and push
         run: |
           gcloud auth configure-docker europe-west1-docker.pkg.dev
+          gcloud auth print-access-token | docker login -u oauth2accesstoken --password-stdin https://europe-west1-docker.pkg.dev
           docker build -t europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/nest-backend-repo/nest-app .
           docker push europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/nest-backend-repo/nest-app
-
+            
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy nest-app \
@@ -32,3 +33,4 @@ jobs:
             --region=europe-west1 \
             --allow-unauthenticated \
             --port=${{ secrets.PORT }}
+        
