@@ -20,15 +20,15 @@ jobs:
 
       - name: Docker build and push
         run: |
-          gcloud auth configure-docker
-          docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/nest-app .
-          docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/nest-app
+          gcloud auth configure-docker europe-west1-docker.pkg.dev
+          docker build -t europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/nest-backend-repo/nest-app .
+          docker push europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/nest-backend-repo/nest-app
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy nest-app \
-            --image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/nest-app \
+            --image=europe-west1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/nest-backend-repo/nest-app \
             --platform=managed \
             --region=europe-west1 \
             --allow-unauthenticated \
-            --port=${{ secrets.PORT }} 
+            --port=${{ secrets.PORT }}
