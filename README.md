@@ -1,98 +1,204 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Artefact Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🚀 Features
 
-## Description
+- **User Authentication**: JWT-based authentication with secure password hashing
+- **Project Management**: Create and manage projects with team collaboration
+- **Task Management**: Kanban-style task organization with columns, priorities, and assignments
+- **Tag System**: Color-coded tags for task categorization
+- **Role-based Access**: Different user roles (ADMIN, MEMBER) for project management
+- **RESTful API**: Clean and well-documented API endpoints
+- **Database**: PostgreSQL with Prisma ORM for type-safe database operations
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🛠️ Tech Stack
 
-## Project setup
+- **Framework**: NestJS 11
+- **Database**: PostgreSQL with Prisma ORM (Neon)
+- **Authentication**: JWT with Passport.js
+- **Validation**: Class-validator and class-transformer
+- **Testing**: Jest for unit and e2e tests
+- **Deployment**: Google Cloud Run with Docker
 
-```bash
-$ npm install
-```
+## 📋 Prerequisites
 
-## Compile and run the project
+Before running this application, make sure you have the following installed:
 
-```bash
-# development
-$ npm run start
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **PostgreSQL** database
+- **Docker** (for containerized deployment)
 
-# watch mode
-$ npm run start:dev
+## 🏃‍♂️ Quick Start
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
+### 1. Clone the Repository
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone <repository-url>
+cd artefact-back
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 2. Install Dependencies
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 3. Environment Configuration
 
-## Resources
+Create a `.env` file in the root directory with the following variables:
 
-Check out a few resources that may come in handy when working with NestJS:
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/artefact_db"
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# JWT Secret
+JWT_SECRET="your-super-secret-jwt-key"
 
-## Support
+# Application
+PORT=5000
+NODE_ENV=development
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:3000
+```
 
-## Stay in touch
+### 4. Database Setup
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+# Generate Prisma client
+npx prisma generate
 
-## License
+# Run database migrations
+npx prisma migrate dev
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```
+
+### 5. Start the Application
+
+#### Development Mode
+```bash
+npm run start:dev
+```
+
+#### Production Mode
+```bash
+npm run build
+npm run start:prod
+```
+
+The application will be available at `http://localhost:5000`
+
+## 🐳 Docker
+
+### Build the Image
+
+```bash
+docker build -t artefact-backend .
+```
+
+### Run with Docker
+
+```bash
+docker run -p 5000:5000 \
+  -e DATABASE_URL="your-database-url" \
+  -e JWT_SECRET="your-jwt-secret" \
+  artefact-backend
+```
+
+
+
+Run with:
+```bash
+docker-compose up -d
+```
+
+## 🚀 Deployment
+
+### Google Cloud Run
+
+This project is configured for automatic deployment to Google Cloud Run via GitHub Actions.
+
+#### Prerequisites
+
+1. **Google Cloud Project** with the following APIs enabled:
+   - Cloud Run API
+   - Artifact Registry API
+   - Cloud Build API
+
+2. **Service Account** with the following roles:
+   - Cloud Run Admin
+   - Artifact Registry Admin
+   - Service Account User
+
+3. **GitHub Secrets** configured:
+   - `GCP_PROJECT_ID`: Your Google Cloud Project ID
+   - `GCP_SA_KEY`: Service account key (JSON format)
+   - `PORT`: Application port (default: 5000)
+
+#### Automatic Deployment
+
+The application automatically deploys to Cloud Run when you push to the `main` branch. The deployment process:
+
+1. Builds the Docker image
+2. Pushes to Google Artifact Registry
+3. Deploys to Cloud Run with the following configuration:
+   - **Memory**: 512Mi
+   - **CPU**: 1 vCPU
+   - **Timeout**: 300 seconds
+   - **Concurrency**: 80 requests
+   - **Max Instances**: 10
+
+
+### Environment Variables for Production
+
+Set these environment variables in your Cloud Run service:
+
+```env
+DATABASE_URL="your-production-database-url"
+JWT_SECRET="your-production-jwt-secret"
+NODE_ENV="production"
+FRONTEND_URL="https://your-frontend-domain.com"
+```
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+- `POST /auth/register` - Register a new user
+- `POST /auth/login` - Login user
+- `POST /auth/logout` - Logout user
+
+### Project Endpoints
+
+- `GET /projects` - Get all projects for the authenticated user
+- `POST /projects` - Create a new project
+- `GET /projects/:id` - Get project details
+- `PUT /projects/:id` - Update project
+- `DELETE /projects/:id` - Delete project
+
+### Task Endpoints
+
+- `GET /tasks` - Get all tasks for a project
+- `POST /tasks` - Create a new task
+- `PUT /tasks/:id` - Update task
+- `DELETE /tasks/:id` - Delete task
+
+### Column Endpoints
+
+- `GET /columns` - Get all columns for a project
+- `POST /columns` - Create a new column
+- `PUT /columns/:id` - Update column
+- `DELETE /columns/:id` - Delete column
+
+
+### Available Scripts
+
+- `npm run build` - Build the application
+- `npm run start` - Start the application
+- `npm run start:dev` - Start in development mode with hot reload
+- `npm run start:debug` - Start in debug mode
+- `npm run start:prod` - Start in production mode
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+- `npm run test` - Run tests
