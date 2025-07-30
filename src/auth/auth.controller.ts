@@ -1,3 +1,4 @@
+//TODO: Configure cross-origin cookies for production deployment
 import { Controller, Post, Body, Res, Get, UseGuards, Req } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
@@ -12,15 +13,27 @@ export class AuthController {
     private prisma: PrismaService,
   ) {}
 
+  private getCookieOptions() {
+    return process.env.NODE_ENV === 'production'
+      ? {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none' as const,
+          domain: '.pepintrie.fr',
+          maxAge: 24 * 60 * 60 * 1000,
+        }
+      : {
+          httpOnly: true,
+          secure: false,
+          sameSite: 'lax' as const,
+          maxAge: 24 * 60 * 60 * 1000,
+        };
+  }
+
   @Post('register')
   async register(@Body() dto: CreateUserDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.register(dto);
-    response.cookie('token', result.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    response.cookie('token', result.access_token, this.getCookieOptions());
     return result;
   }
 
@@ -31,18 +44,13 @@ export class AuthController {
   ) {
     const user = await this.authService.validateUser(dto.email, dto.password);
     const result = this.authService.login(user);
-    response.cookie('token', result.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+    response.cookie('token', result.access_token, this.getCookieOptions());
     return result;
   }
 
   @Post('logout')
   logout(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('token');
+    response.clearCookie('token', this.getCookieOptions());
     return { message: 'Déconnexion réussie' };
   }
 
