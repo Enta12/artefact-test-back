@@ -22,7 +22,7 @@ export class ProjectMemberController {
 
   @Get()
   async listMembers(@Request() req, @Param('projectId', ParseIntPipe) projectId: number) {
-    // TODO: vérifier que req.user a accès au projet (sinon 404)
+    // TODO: check if user has access to project
     return this.projectMemberService.listMembers(projectId);
   }
 
@@ -32,7 +32,7 @@ export class ProjectMemberController {
     @Param('projectId', ParseIntPipe) projectId: number,
     @Body() body: { userId?: number; email?: string; role?: Role },
   ) {
-    // TODO: vérifier que req.user a accès au projet (sinon 404)
+    // TODO: check if user has access to project
     return this.projectMemberService.addMember(projectId, body.userId, body.role, body.email);
   }
 
@@ -43,7 +43,7 @@ export class ProjectMemberController {
     @Param('userId', ParseIntPipe) userId: number,
     @Body() body: { role: Role },
   ) {
-    // TODO: vérifier que req.user a accès au projet (sinon 404)
+    // TODO: check if user has access to project
     return this.projectMemberService.updateMemberRole(projectId, userId, body.role);
   }
 

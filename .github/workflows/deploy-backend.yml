@@ -25,11 +25,14 @@ jobs:
             --location=europe-west1 \
             --description="Docker repository for NestJS backend" \
             --quiet || echo "Repository already exists"
-          
       - name: Docker Auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+      #TODO: google-github-actions/auth@v2 should suffice
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
           
       - name: Docker build and push
         run: |

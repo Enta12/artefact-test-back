@@ -1,4 +1,3 @@
-//TODO MAKE THIS
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '../../generated/prisma';
